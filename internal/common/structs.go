@@ -27,8 +27,8 @@ type Endpoint struct {
 }
 
 type Param struct {
-    Desc string
-    Required bool
+	Desc     string
+	Required bool
 }
 
 type Response struct {
@@ -41,7 +41,7 @@ type Response struct {
 // {id} User id
 // (name?) User name
 // [Access-Key?] Token access key
-// <Body>
+// <common.Param>
 // 200: string
 func test(w http.ResponseWriter, r *http.Request) {
 }

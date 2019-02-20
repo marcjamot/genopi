@@ -47,3 +47,10 @@ func tryParam(comment, left, right string) (key string, value common.Param, ok b
 		Required: required,
 	}, true
 }
+
+func tryBody(comment string) (body string, ok bool) {
+	if strings.HasPrefix(comment, "<") && strings.HasSuffix(comment, ">") {
+		return strings.TrimSpace(comment[1 : len(comment)-1]), true
+	}
+	return "", false
+}

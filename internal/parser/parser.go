@@ -1,9 +1,12 @@
 package parser
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
 	"genopi/internal/common"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,8 +17,22 @@ import (
 var functionRegex = regexp.MustCompile(`func (.+)\(.+http.ResponseWriter,.+\*http.Request\)`)
 
 type Method struct {
+	Package  string
+	Name     string
 	Comments []string
-	Text     string
+}
+
+type Struct struct {
+	Package string
+	Name    string
+	Fields  []Field
+}
+
+type Field struct {
+	Name     string
+	Type     string
+	Optional bool
+	Array    bool
 }
 
 func FromPath(dir string) ([]common.Endpoint, error) {
@@ -25,19 +42,23 @@ func FromPath(dir string) ([]common.Endpoint, error) {
 	}
 
 	methods := make([]Method, 0)
+	structs := make(map[string]Struct, 0)
 	for _, path := range paths {
-		m, err := readMethods(path)
+		m, s, err := readFileContent(path)
 		if err != nil {
 			return nil, err
 		}
 		methods = append(methods, m...)
+		for k, v := range s {
+			structs[k] = v
+		}
 	}
 
 	endpoints := make([]common.Endpoint, 0)
 	for _, method := range methods {
-		e, err := parseEndpoint(method)
+		e, err := parseEndpoint(method, structs)
 		if err != nil {
-			return nil, err
+			log.Printf("Skipping %s.%s: %v", method.Package, method.Name, err)
 		}
 		endpoints = append(endpoints, e)
 	}
@@ -60,36 +81,32 @@ func getPaths(dir string) ([]string, error) {
 	return paths, err
 }
 
-func readMethods(path string) ([]Method, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
+func readFileContent(path string) ([]Method, map[string]Struct, error) {
 	methods := make([]Method, 0)
-	comments := make([]string, 0)
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		text := scanner.Text()
+	structs := make(map[string]Struct, 0)
 
-		if strings.HasPrefix(text, "// ") {
-			comments = append(comments, text[3:])
-		} else if functionRegex.MatchString(text) {
-			methods = append(methods, Method{
-				Comments: comments,
-				Text:     text,
-			})
-			comments = make([]string, 0)
-		} else if len(comments) > 0 {
-			comments = make([]string, 0)
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, decl := range f.Decls {
+		switch x1 := decl.(type) {
+		case *ast.GenDecl:
+			if s, ok := readStruct(f, x1); ok {
+				structs[fmt.Sprintf("%s.%s", s.Package, s.Name)] = s
+			}
+		case *ast.FuncDecl:
+			if m, ok := readMethod(f, x1); ok {
+				methods = append(methods, m)
+			}
 		}
 	}
 
-	return methods, nil
+	return methods, structs, nil
 }
 
-func parseEndpoint(method Method) (common.Endpoint, error) {
+func parseEndpoint(method Method, structs map[string]Struct) (common.Endpoint, error) {
 	endpoint := common.Endpoint{
 		Name:        "",
 		Method:      "",
@@ -112,13 +129,15 @@ func parseEndpoint(method Method) (common.Endpoint, error) {
 			endpoint.QueryParams[k] = v
 		} else if k, v, ok := tryParam(c, "[", "]"); ok {
 			endpoint.Headers[k] = v
+		} else if b, ok := tryBody(c); ok {
+			endpoint.Body = &b
 		} else if i == 0 && endpoint.Name == "" {
 			// Name is checked last to not accidentally match something else
 			endpoint.Name = strings.TrimSpace(c)
 		}
 	}
 
-	if err := verify(endpoint); err != nil {
+	if err := verify(endpoint, structs); err != nil {
 		return common.Endpoint{}, err
 	}
 
@@ -127,15 +146,28 @@ func parseEndpoint(method Method) (common.Endpoint, error) {
 }
 
 // verify that we have at least the minimal required info
-func verify(endpoint common.Endpoint) error {
+func verify(endpoint common.Endpoint, structs map[string]Struct) error {
 	if endpoint.Name == "" {
-		return fmt.Errorf("%s missing name", endpoint.Name)
+		return errors.New("missing name")
 	}
 	if endpoint.Method == "" {
-		return fmt.Errorf("%s missing method", endpoint.Name)
+		return errors.New("missing method")
 	}
 	if endpoint.Path == "" {
-		return fmt.Errorf("%s missing path", endpoint.Name)
+		return errors.New("missing path")
 	}
+
+	for k := range endpoint.PathParams {
+		if !strings.Contains(endpoint.Path, k) {
+			return fmt.Errorf("path param %s missing in path: %s", k, endpoint.Path)
+		}
+	}
+
+	if endpoint.Body != nil {
+		if _, ok := structs[*endpoint.Body]; !ok {
+			return fmt.Errorf("body struct not found: %s", *endpoint.Body)
+		}
+	}
+
 	return nil
 }

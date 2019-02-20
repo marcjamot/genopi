@@ -17,7 +17,6 @@ type Config struct {
 
 func main() {
 	log.Print("Genopi - Generate Open API 3")
-	log.Printf("ARGS: %v", os.Args)
 
 	status, err := fromFlags()
 	if err != nil {
@@ -36,7 +35,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Print("[1/2] Generate documentation")
+	log.Print("[2/2] Generate documentation")
 	if err := generator.OpenAPI3(common.Api{
 		Status:    status,
 		Endpoints: endpoints,
