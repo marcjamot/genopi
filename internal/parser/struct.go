@@ -31,9 +31,13 @@ func readStruct(f *ast.File, x1 *ast.GenDecl) (Struct, bool) {
 					case *ast.Ident:
 						fields = append(fields, readIdent(pack, field.Names[0].Name, x3))
 					case *ast.StarExpr:
-						fields = append(fields, readStar(pack, field.Names[0].Name, x3))
+						if field, ok := readStar(pack, field.Names[0].Name, x3); ok {
+							fields = append(fields, field)
+						}
 					case *ast.ArrayType:
-						fields = append(fields, readArray(pack, field.Names[0].Name, x3))
+						if field, ok := readArray(pack, field.Names[0].Name, x3); ok {
+							fields = append(fields, field)
+						}
 					case *ast.MapType:
 						// Does not handle maps
 					}
@@ -63,26 +67,28 @@ func readIdent(pack, name string, ident *ast.Ident) Field {
 	}
 }
 
-func readStar(pack, name string, star *ast.StarExpr) Field {
+func readStar(pack, name string, star *ast.StarExpr) (Field, bool) {
 	var field Field
 	if ident, ok := star.X.(*ast.Ident); ok {
 		field = readIdent(pack, name, ident)
 	} else {
-		log.Fatalf("cannot handle pointers to anything but primitives or structs")
+		log.Printf("skipping %s.%s: cannot handle pointers to anything but primitives or structs", pack, name)
+		return Field{}, false
 	}
 
 	field.Optional = true
-	return field
+	return field, true
 }
 
-func readArray(pack, name string, arr *ast.ArrayType) Field {
+func readArray(pack, name string, arr *ast.ArrayType) (Field, bool) {
 	var field Field
 	if ident, ok := arr.Elt.(*ast.Ident); ok {
 		field = readIdent(pack, name, ident)
 	} else {
-		log.Fatalf("cannot handle array of anything but primitives or structs")
+		log.Printf("skipping %s.%s: cannot handle array of anything but primitives or structs", pack, name)
+		return Field{}, false
 	}
 
 	field.Array = true
-	return field
+	return field, true
 }
