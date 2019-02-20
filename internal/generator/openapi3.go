@@ -47,7 +47,7 @@ func OpenAPI3(api common.Api) error {
 	paths(api, g)
 	// components(router, g)
 
-	return ioutil.WriteFile("api.yaml", []byte(g.String()), 0755)
+	return ioutil.WriteFile("api.yaml", []byte(g.String()), 0644)
 }
 
 func paths(api common.Api, g *generator) {
