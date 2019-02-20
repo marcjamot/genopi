@@ -59,6 +59,7 @@ func FromPath(dir string) ([]common.Endpoint, error) {
 		e, err := parseEndpoint(method, structs)
 		if err != nil {
 			log.Printf("Skipping %s.%s: %v", method.Package, method.Name, err)
+			continue
 		}
 		endpoints = append(endpoints, e)
 	}
