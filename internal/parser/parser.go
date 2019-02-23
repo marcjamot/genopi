@@ -16,33 +16,14 @@ import (
 
 var functionRegex = regexp.MustCompile(`func (.+)\(.+http.ResponseWriter,.+\*http.Request\)`)
 
-type Method struct {
-	Package  string
-	Name     string
-	Comments []string
-}
-
-type Struct struct {
-	Package string
-	Name    string
-	Fields  []Field
-}
-
-type Field struct {
-	Name     string
-	Type     string
-	Optional bool
-	Array    bool
-}
-
 func FromPath(dir string) ([]common.Endpoint, error) {
 	paths, err := getPaths(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	methods := make([]Method, 0)
-	structs := make(map[string]Struct, 0)
+	methods := make([]common.Method, 0)
+	structs := make(map[string]common.Struct, 0)
 	for _, path := range paths {
 		m, s, err := readFileContent(path)
 		if err != nil {
@@ -82,9 +63,9 @@ func getPaths(dir string) ([]string, error) {
 	return paths, err
 }
 
-func readFileContent(path string) ([]Method, map[string]Struct, error) {
-	methods := make([]Method, 0)
-	structs := make(map[string]Struct, 0)
+func readFileContent(path string) ([]common.Method, map[string]common.Struct, error) {
+	methods := make([]common.Method, 0)
+	structs := make(map[string]common.Struct, 0)
 
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
@@ -107,7 +88,7 @@ func readFileContent(path string) ([]Method, map[string]Struct, error) {
 	return methods, structs, nil
 }
 
-func parseEndpoint(method Method, structs map[string]Struct) (common.Endpoint, error) {
+func parseEndpoint(method common.Method, structs map[string]common.Struct) (common.Endpoint, error) {
 	endpoint := common.Endpoint{
 		Name:        "",
 		Method:      "",
@@ -131,14 +112,16 @@ func parseEndpoint(method Method, structs map[string]Struct) (common.Endpoint, e
 		} else if k, v, ok := tryParam(c, "[", "]"); ok {
 			endpoint.Headers[k] = v
 		} else if b, ok := tryBody(c); ok {
-			endpoint.Body = &b
+			if s, ok := structs[b]; ok {
+				endpoint.Body = &s
+			}
 		} else if i == 0 && endpoint.Name == "" {
 			// Name is checked last to not accidentally match something else
 			endpoint.Name = strings.TrimSpace(c)
 		}
 	}
 
-	if err := verify(endpoint, structs); err != nil {
+	if err := verify(endpoint); err != nil {
 		return common.Endpoint{}, err
 	}
 
@@ -147,7 +130,7 @@ func parseEndpoint(method Method, structs map[string]Struct) (common.Endpoint, e
 }
 
 // verify that we have at least the minimal required info
-func verify(endpoint common.Endpoint, structs map[string]Struct) error {
+func verify(endpoint common.Endpoint) error {
 	if endpoint.Name == "" {
 		return errors.New("missing name")
 	}
@@ -161,12 +144,6 @@ func verify(endpoint common.Endpoint, structs map[string]Struct) error {
 	for k := range endpoint.PathParams {
 		if !strings.Contains(endpoint.Path, k) {
 			return fmt.Errorf("path param %s missing in path: %s", k, endpoint.Path)
-		}
-	}
-
-	if endpoint.Body != nil {
-		if _, ok := structs[*endpoint.Body]; !ok {
-			return fmt.Errorf("body struct not found: %s", *endpoint.Body)
 		}
 	}
 

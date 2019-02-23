@@ -35,14 +35,20 @@ func tryParam(comment, left, right string) (key string, value common.Param, ok b
 	}
 	j := i + 1
 
+	prefix := comment[1:i]
+	ps := strings.Split(prefix, ":")
+	ident := strings.TrimSpace(ps[0])
+	typ := strings.TrimSpace(ps[1])
+
 	var required bool
-	if comment[i-1] == '?' {
-		i = i - 1
+	if strings.HasSuffix(ident, "?") {
+		ident = ident[:len(ident)-1]
 	} else {
 		required = true
 	}
 
-	return strings.TrimSpace(comment[1:i]), common.Param{
+	return ident, common.Param{
+		Type:     typ,
 		Desc:     strings.TrimSpace(comment[j:]),
 		Required: required,
 	}, true
