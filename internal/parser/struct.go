@@ -94,7 +94,8 @@ func readStar(pack, name string, lit *ast.BasicLit, star *ast.StarExpr) (common.
 	if ident, ok := star.X.(*ast.Ident); ok {
 		field = readIdent(pack, name, lit, ident.Name)
 	} else if sel, ok := star.X.(*ast.SelectorExpr); ok {
-		field = readIdent(pack, name, lit, sel.Sel.Name)
+		p := fmt.Sprintf("%v", sel.X)
+		field = readIdent(p, name, lit, sel.Sel.Name)
 	} else {
 		// TODO: log.Printf("skipping %s.%s: cannot handle pointers to anything but primitives or structs", pack, name)
 		return common.Field{}, false
