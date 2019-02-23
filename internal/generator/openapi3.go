@@ -121,8 +121,30 @@ func components(api common.Api, g *generator) {
 		g.WriteString(3, "type: object")
 		g.WriteString(3, "properties:")
 		for _, f := range s.Fields {
+			typ := getType(f.Type)
+
 			g.WriteString(4, f.Name, ":")
-			g.WriteString(5, "type: ", f.Type)
+			if f.Array {
+				g.WriteString(5, "type: array")
+				g.WriteString(5, "items:")
+				g.WriteString(6, typ)
+			} else {
+				g.WriteString(5, typ)
+			}
 		}
+		g.WriteString(3, "required:")
+		for _, f := range s.Fields {
+			if !f.Optional {
+				g.WriteString(4, "- ", f.Name)
+			}
+		}
+	}
+}
+
+func getType(typ string) string {
+	if strings.Contains(typ, ".") {
+		return fmt.Sprintf("$ref: '#/components/schemas/%s'", typ)
+	} else {
+		return fmt.Sprintf("type: %s", typ)
 	}
 }

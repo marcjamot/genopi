@@ -46,9 +46,9 @@ type Endpoint struct {
 }
 
 type Param struct {
-	Type     string `json:"type"`
-	Desc     string `json:"desc"`
-	Required bool   `json:"required"`
+	Type     string
+	Desc     string
+	Required bool
 }
 
 type Response struct {
@@ -56,12 +56,22 @@ type Response struct {
 	Body *string
 }
 
+type body struct {
+	Type user `json:"type"`
+	Desc []user
+}
+
+type user struct {
+	Type string `json:"type"`
+	Desc []string
+}
+
 // Get users
 // GET /v1/users/{id}
 // {id:uuid} User id
 // (name?:string) User name
 // [Access-Key?:string] Token access key
-// <common.Param>
+// <common.body>
 // 200:string
 // 400:common.Response -> {"code": 400, "Body": "lawl"}
 func test(w http.ResponseWriter, r *http.Request) {
