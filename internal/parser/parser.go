@@ -10,11 +10,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
-
-var functionRegex = regexp.MustCompile(`func (.+)\(.+http.ResponseWriter,.+\*http.Request\)`)
 
 func FromPath(dir string) ([]common.Endpoint, error) {
 	paths, err := getPaths(dir)

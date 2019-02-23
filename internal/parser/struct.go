@@ -6,9 +6,13 @@ import (
 	"go/ast"
 	"go/types"
 	"log"
+	"regexp"
 )
 
-var basicTypes = make(map[string]struct{})
+var (
+	basicTypes = make(map[string]struct{})
+	jsonRegex  = regexp.MustCompile(`json:"([^"]+)"`)
+)
 
 func init() {
 	for _, t := range types.Typ {
@@ -30,13 +34,13 @@ func readStruct(f *ast.File, x1 *ast.GenDecl) (common.Struct, bool) {
 				for _, field := range st.Fields.List {
 					switch x3 := field.Type.(type) {
 					case *ast.Ident:
-						fields = append(fields, readIdent(pack, field.Names[0].Name, x3))
+						fields = append(fields, readIdent(pack, field.Names[0].Name, field.Tag, x3))
 					case *ast.StarExpr:
-						if field, ok := readStar(pack, field.Names[0].Name, x3); ok {
+						if field, ok := readStar(pack, field.Names[0].Name, field.Tag, x3); ok {
 							fields = append(fields, field)
 						}
 					case *ast.ArrayType:
-						if field, ok := readArray(pack, field.Names[0].Name, x3); ok {
+						if field, ok := readArray(pack, field.Names[0].Name, field.Tag, x3); ok {
 							fields = append(fields, field)
 						}
 					case *ast.MapType:
@@ -56,7 +60,11 @@ func readStruct(f *ast.File, x1 *ast.GenDecl) (common.Struct, bool) {
 	return common.Struct{}, false
 }
 
-func readIdent(pack, name string, ident *ast.Ident) common.Field {
+func readIdent(pack, name string, lit *ast.BasicLit, ident *ast.Ident) common.Field {
+	if lit != nil && jsonRegex.MatchString(lit.Value) {
+		name = jsonRegex.FindStringSubmatch(lit.Value)[1]
+	}
+
 	typ := ident.Name
 	if _, ok := basicTypes[ident.Name]; !ok {
 		typ = fmt.Sprintf("%s.%s", pack, typ)
@@ -68,10 +76,10 @@ func readIdent(pack, name string, ident *ast.Ident) common.Field {
 	}
 }
 
-func readStar(pack, name string, star *ast.StarExpr) (common.Field, bool) {
+func readStar(pack, name string, lit *ast.BasicLit, star *ast.StarExpr) (common.Field, bool) {
 	var field common.Field
 	if ident, ok := star.X.(*ast.Ident); ok {
-		field = readIdent(pack, name, ident)
+		field = readIdent(pack, name, lit, ident)
 	} else {
 		log.Printf("skipping %s.%s: cannot handle pointers to anything but primitives or structs", pack, name)
 		return common.Field{}, false
@@ -81,10 +89,10 @@ func readStar(pack, name string, star *ast.StarExpr) (common.Field, bool) {
 	return field, true
 }
 
-func readArray(pack, name string, arr *ast.ArrayType) (common.Field, bool) {
+func readArray(pack, name string, lit *ast.BasicLit, arr *ast.ArrayType) (common.Field, bool) {
 	var field common.Field
 	if ident, ok := arr.Elt.(*ast.Ident); ok {
-		field = readIdent(pack, name, ident)
+		field = readIdent(pack, name, lit, ident)
 	} else {
 		log.Printf("skipping %s.%s: cannot handle array of anything but primitives or structs", pack, name)
 		return common.Field{}, false

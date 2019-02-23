@@ -46,9 +46,9 @@ type Endpoint struct {
 }
 
 type Param struct {
-	Type     string
-	Desc     string
-	Required bool
+	Type     string `json:"type"`
+	Desc     string `json:"desc"`
+	Required bool   `json:"required"`
 }
 
 type Response struct {
