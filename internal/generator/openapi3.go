@@ -69,6 +69,10 @@ func paths(api common.Api, g *generator) {
 	g.WriteString(0, "paths:")
 	for _, k := range paths {
 		v := endpoints[k]
+		sort.Slice(v, func(i, j int) bool {
+			return methodOrder(v[i].Method) <= methodOrder(v[j].Method)
+		})
+
 		g.WriteString(1, k, ":")
 
 		for _, e := range v {
@@ -116,6 +120,21 @@ func paths(api common.Api, g *generator) {
 				}
 			}
 		}
+	}
+}
+
+func methodOrder(method string) int {
+	switch method {
+	case "get":
+		return 0
+	case "post":
+		return 1
+	case "put":
+		return 2
+	case "delete":
+		return 3
+	default:
+		return 4
 	}
 }
 
