@@ -88,8 +88,10 @@ func paths(api common.Api, g *generator) {
 				g.WriteString(7, fmt.Sprintf("$ref: '#/components/schemas/%s.%s'", e.Body.Package, e.Body.Name))
 			}
 			g.WriteString(3, "responses:")
-			g.WriteString(4, "'200':")
-			g.WriteString(5, "description: OK")
+			for _, r := range e.Responses {
+				g.WriteString(4, fmt.Sprintf("'%d':", r.Code))
+				g.WriteString(5, "description: ", r.Body)
+			}
 		}
 	}
 }

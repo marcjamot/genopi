@@ -53,7 +53,7 @@ type Param struct {
 
 type Response struct {
 	Code int
-	Body *string
+	Body string
 }
 
 type body struct {
@@ -72,7 +72,7 @@ type user struct {
 // (name?:string) User name
 // [Access-Key?:string] Token access key
 // <common.body>
-// 200:string
-// 400:common.Response -> {"code": 400, "Body": "lawl"}
+// 200 OK
+// 400 If missing params
 func test(w http.ResponseWriter, r *http.Request) {
 }

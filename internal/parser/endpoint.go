@@ -3,6 +3,7 @@ package parser
 import (
 	"genopi/internal/common"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -59,4 +60,21 @@ func tryBody(comment string) (body string, ok bool) {
 		return strings.TrimSpace(comment[1 : len(comment)-1]), true
 	}
 	return "", false
+}
+
+func tryResponse(comment string) (common.Response, bool) {
+	if len(comment) < 3 {
+		return common.Response{}, false
+	}
+
+	code, err := strconv.ParseInt(comment[0:3], 10, 32)
+	if err != nil {
+		return common.Response{}, false
+	}
+
+	body := strings.TrimSpace(comment[3:])
+	return common.Response{
+		Code: int(code),
+		Body: body,
+	}, true
 }

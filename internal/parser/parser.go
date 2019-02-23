@@ -112,6 +112,8 @@ func parseEndpoint(method common.Method, structs map[string]common.Struct) (comm
 			if s, ok := structs[b]; ok {
 				endpoint.Body = &s
 			}
+		} else if r, ok := tryResponse(c); ok {
+			endpoint.Responses = append(endpoint.Responses, r)
 		} else if i == 0 && endpoint.Name == "" {
 			// Name is checked last to not accidentally match something else
 			endpoint.Name = strings.TrimSpace(c)
@@ -122,7 +124,6 @@ func parseEndpoint(method common.Method, structs map[string]common.Struct) (comm
 		return common.Endpoint{}, err
 	}
 
-	log.Printf("Endpoint: %v", endpoint)
 	return endpoint, nil
 }
 
