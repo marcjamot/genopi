@@ -48,11 +48,6 @@ func OpenAPI3(api common.Api) error {
 }
 
 func paths(api common.Api, g *generator) {
-	structs := make(map[string]common.Struct)
-	for _, s := range api.Structs {
-		structs[s.FullName()] = s
-	}
-
 	endpoints := make(map[string][]common.Endpoint)
 	for _, e := range api.Endpoints {
 		es, ok := endpoints[e.Path]
@@ -63,26 +58,37 @@ func paths(api common.Api, g *generator) {
 		endpoints[e.Path] = es
 	}
 
+	paths := make([]string, 0)
+	for k := range endpoints {
+		paths = append(paths, k)
+	}
+	sort.Slice(paths, func(i, j int) bool {
+		return strings.Compare(paths[i], paths[j]) <= 0
+	})
+
 	g.WriteString(0, "paths:")
-	for k, v := range endpoints {
+	for _, k := range paths {
+		v := endpoints[k]
 		g.WriteString(1, k, ":")
 
 		for _, e := range v {
 			g.WriteString(2, fmt.Sprintf("%s:", strings.ToLower(e.Method)))
 			g.WriteString(3, "summary: ", e.Name)
-			g.WriteString(3, "parameters:")
-			for k, v := range e.PathParams {
-				parameter(g, "path", k, v)
-			}
-			for k, v := range e.Headers {
-				parameter(g, "header", k, v)
-			}
-			for k, v := range e.QueryParams {
-				parameter(g, "query", k, v)
+			if len(e.PathParams) > 0 || len(e.Headers) > 0 || len(e.QueryParams) > 0 {
+				g.WriteString(3, "parameters:")
+				for k, v := range e.PathParams {
+					parameter(g, "path", k, v)
+				}
+				for k, v := range e.Headers {
+					parameter(g, "header", k, v)
+				}
+				for k, v := range e.QueryParams {
+					parameter(g, "query", k, v)
+				}
 			}
 
 			if e.Body != nil {
-				if _, ok := structs[*e.Body]; ok {
+				if _, ok := api.Structs[*e.Body]; ok {
 					g.WriteString(3, "requestBody:")
 					g.WriteString(4, "required: true")
 					g.WriteString(4, "content:")
@@ -99,7 +105,7 @@ func paths(api common.Api, g *generator) {
 				g.WriteString(4, fmt.Sprintf("'%d':", r.Code))
 				g.WriteString(5, "description: ", http.StatusText(r.Code))
 				if r.Type != nil {
-					if _, ok := structs[*r.Type]; ok {
+					if _, ok := api.Structs[*r.Type]; ok {
 						g.WriteString(5, "content:")
 						g.WriteString(6, "application/json:")
 						g.WriteString(7, "schema:")
