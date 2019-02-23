@@ -6,6 +6,7 @@ import (
 	"genopi/internal/common"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -49,7 +50,7 @@ func OpenAPI3(api common.Api) error {
 func paths(api common.Api, g *generator) {
 	structs := make(map[string]common.Struct)
 	for _, s := range api.Structs {
-		structs[fmt.Sprintf("%s.%s", s.Package, s.Name)] = s
+		structs[s.FullName()] = s
 	}
 
 	endpoints := make(map[string][]common.Endpoint)
@@ -96,6 +97,7 @@ func paths(api common.Api, g *generator) {
 			g.WriteString(3, "responses:")
 			for _, r := range e.Responses {
 				g.WriteString(4, fmt.Sprintf("'%d':", r.Code))
+				g.WriteString(5, "description: ", http.StatusText(r.Code))
 				if r.Type != nil {
 					if _, ok := structs[*r.Type]; ok {
 						g.WriteString(5, "content:")
@@ -124,13 +126,16 @@ func components(api common.Api, g *generator) {
 	g.WriteString(0, "components:")
 	g.WriteString(1, "schemas:")
 
-	sort.Slice(api.Structs, func(i, j int) bool {
-		return strings.Compare(api.Structs[i].Name, api.Structs[j].Name) <= 0
+	sorted := make([]common.Struct, 0)
+	for _, s := range api.Structs {
+		sorted = append(sorted, s)
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return strings.Compare(sorted[i].Name, sorted[j].Name) <= 0
 	})
 
-	for _, s := range api.Structs {
-		name := fmt.Sprintf("%s.%s", s.Package, s.Name)
-		g.WriteString(2, name, ":")
+	for _, s := range sorted {
+		g.WriteString(2, s.FullName(), ":")
 		g.WriteString(3, "type: object")
 		g.WriteString(3, "properties:")
 		for _, f := range s.Fields {
@@ -143,10 +148,19 @@ func components(api common.Api, g *generator) {
 				writeComponentType(g, 5, f.Type)
 			}
 		}
-		g.WriteString(3, "required:")
+		var required bool
 		for _, f := range s.Fields {
 			if !f.Optional {
-				g.WriteString(4, "- ", f.Name)
+				required = true
+				break
+			}
+		}
+		if required {
+			g.WriteString(3, "required:")
+			for _, f := range s.Fields {
+				if !f.Optional {
+					g.WriteString(4, "- ", f.Name)
+				}
 			}
 		}
 	}

@@ -1,5 +1,9 @@
 package common
 
+import (
+	"fmt"
+)
+
 type Method struct {
 	Package  string
 	Name     string
@@ -12,6 +16,10 @@ type Struct struct {
 	Fields  []Field
 }
 
+func (s Struct) FullName() string {
+	return fmt.Sprintf("%s.%s", s.Package, s.Name)
+}
+
 type Field struct {
 	Name     string
 	Type     string
@@ -22,7 +30,7 @@ type Field struct {
 type Api struct {
 	Status    Status
 	Endpoints []Endpoint
-	Structs   []Struct
+	Structs   map[string]Struct
 }
 
 type Status struct {

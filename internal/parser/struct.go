@@ -110,7 +110,8 @@ func readArray(pack, name string, lit *ast.BasicLit, arr *ast.ArrayType) (common
 	if ident, ok := arr.Elt.(*ast.Ident); ok {
 		field = readIdent(pack, name, lit, ident.Name)
 	} else if sel, ok := arr.Elt.(*ast.SelectorExpr); ok {
-		field = readIdent(pack, name, lit, sel.Sel.Name)
+		p := fmt.Sprintf("%v", sel.X)
+		field = readIdent(p, name, lit, sel.Sel.Name)
 	} else {
 		// TODO: log.Printf("skipping %s.%s: cannot handle array of anything but primitives or structs", pack, name)
 		return common.Field{}, false

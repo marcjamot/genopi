@@ -12,21 +12,23 @@ import (
 	"strings"
 )
 
-func FromPath(dir string) ([]common.Endpoint, []common.Struct, error) {
+func FromPath(dir string) ([]common.Endpoint, map[string]common.Struct, error) {
 	paths, err := getPaths(dir)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	methods := make([]common.Method, 0)
-	structs := make([]common.Struct, 0)
+	structs := make(map[string]common.Struct, 0)
 	for _, path := range paths {
-		m, s, err := readFileContent(path)
+		m, ss, err := readFileContent(path)
 		if err != nil {
 			return nil, nil, err
 		}
 		methods = append(methods, m...)
-		structs = append(structs, s...)
+		for _, s := range ss {
+			structs[s.FullName()] = s
+		}
 	}
 
 	endpoints := make([]common.Endpoint, 0)
@@ -39,7 +41,37 @@ func FromPath(dir string) ([]common.Endpoint, []common.Struct, error) {
 		endpoints = append(endpoints, e)
 	}
 
-	return endpoints, structs, nil
+	filtered := make(map[string]common.Struct)
+	for _, e := range endpoints {
+		if e.Body != nil {
+			ss := getStructs(structs, *e.Body)
+			for _, s := range ss {
+				filtered[s.FullName()] = s
+			}
+		}
+
+		for _, r := range e.Responses {
+			if r.Type != nil {
+				ss := getStructs(structs, *r.Type)
+				for _, s := range ss {
+					filtered[s.FullName()] = s
+				}
+			}
+		}
+	}
+
+	return endpoints, filtered, nil
+}
+
+func getStructs(lookup map[string]common.Struct, s string) []common.Struct {
+	structs := make([]common.Struct, 0)
+	if st, ok := lookup[s]; ok {
+		structs = append(structs, st)
+		for _, f := range st.Fields {
+			structs = append(structs, getStructs(lookup, f.Type)...)
+		}
+	}
+	return structs
 }
 
 func getPaths(dir string) ([]string, error) {
