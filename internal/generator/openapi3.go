@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"genopi/internal/common"
 	"io/ioutil"
+	"log"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -13,22 +15,15 @@ type generator struct {
 	b *bytes.Buffer
 }
 
-func (g *generator) Indentation(indentation int) {
+func (g *generator) WriteString(indentation int, ss ...string) {
 	for i := 0; i < indentation; i = i + 1 {
 		g.b.WriteString("  ")
 	}
-}
 
-func (g *generator) NewLine() {
-	g.b.WriteRune('\n')
-}
-
-func (g *generator) WriteString(indentation int, ss ...string) {
-	g.Indentation(indentation)
 	for _, s := range ss {
 		g.b.WriteString(s)
 	}
-	g.NewLine()
+	g.b.WriteRune('\n')
 }
 
 func (g *generator) String() string {
@@ -52,6 +47,11 @@ func OpenAPI3(api common.Api) error {
 }
 
 func paths(api common.Api, g *generator) {
+	structs := make(map[string]common.Struct)
+	for _, s := range api.Structs {
+		structs[fmt.Sprintf("%s.%s", s.Package, s.Name)] = s
+	}
+
 	endpoints := make(map[string][]common.Endpoint)
 	for _, e := range api.Endpoints {
 		es, ok := endpoints[e.Path]
@@ -79,18 +79,33 @@ func paths(api common.Api, g *generator) {
 			for k, v := range e.QueryParams {
 				parameter(g, "query", k, v)
 			}
+
 			if e.Body != nil {
-				g.WriteString(3, "requestBody:")
-				g.WriteString(4, "required: true")
-				g.WriteString(4, "content:")
-				g.WriteString(5, "application/json:")
-				g.WriteString(6, "schema:")
-				g.WriteString(7, fmt.Sprintf("$ref: '#/components/schemas/%s.%s'", e.Body.Package, e.Body.Name))
+				if _, ok := structs[*e.Body]; ok {
+					g.WriteString(3, "requestBody:")
+					g.WriteString(4, "required: true")
+					g.WriteString(4, "content:")
+					g.WriteString(5, "application/json:")
+					g.WriteString(6, "schema:")
+					g.WriteString(7, fmt.Sprintf("$ref: '#/components/schemas/%s'", *e.Body))
+				} else {
+					log.Printf("Body: could not find the struct: %s", *e.Body)
+				}
 			}
+
 			g.WriteString(3, "responses:")
 			for _, r := range e.Responses {
 				g.WriteString(4, fmt.Sprintf("'%d':", r.Code))
-				g.WriteString(5, "description: ", r.Body)
+				if r.Type != nil {
+					if _, ok := structs[*r.Type]; ok {
+						g.WriteString(5, "content:")
+						g.WriteString(6, "application/json:")
+						g.WriteString(7, "schema:")
+						g.WriteString(8, fmt.Sprintf("$ref: '#/components/schemas/%s'", *r.Type))
+					} else {
+						log.Printf("%d: could not find the struct: %s", r.Code, *r.Type)
+					}
+				}
 			}
 		}
 	}
@@ -109,29 +124,23 @@ func components(api common.Api, g *generator) {
 	g.WriteString(0, "components:")
 	g.WriteString(1, "schemas:")
 
-	structs := make(map[string]common.Struct)
-	for _, e := range api.Endpoints {
-		if e.Body != nil {
-			name := fmt.Sprintf("%s.%s", e.Body.Package, e.Body.Name)
-			structs[name] = *e.Body
-		}
-	}
+	sort.Slice(api.Structs, func(i, j int) bool {
+		return strings.Compare(api.Structs[i].Name, api.Structs[j].Name) <= 0
+	})
 
-	for _, s := range structs {
+	for _, s := range api.Structs {
 		name := fmt.Sprintf("%s.%s", s.Package, s.Name)
 		g.WriteString(2, name, ":")
 		g.WriteString(3, "type: object")
 		g.WriteString(3, "properties:")
 		for _, f := range s.Fields {
-			typ := getType(f.Type)
-
 			g.WriteString(4, f.Name, ":")
 			if f.Array {
 				g.WriteString(5, "type: array")
 				g.WriteString(5, "items:")
-				g.WriteString(6, typ)
+				writeComponentType(g, 6, f.Type)
 			} else {
-				g.WriteString(5, typ)
+				writeComponentType(g, 5, f.Type)
 			}
 		}
 		g.WriteString(3, "required:")
@@ -143,10 +152,16 @@ func components(api common.Api, g *generator) {
 	}
 }
 
-func getType(typ string) string {
-	if strings.Contains(typ, ".") {
-		return fmt.Sprintf("$ref: '#/components/schemas/%s'", typ)
+func writeComponentType(g *generator, indentation int, typ string) {
+	if typ == "uuid.UUID" {
+		g.WriteString(indentation, "type: string")
+		g.WriteString(indentation, "format: uuid")
+	} else if typ == "time.Time" {
+		g.WriteString(indentation, "type: string")
+		g.WriteString(indentation, "format: date")
+	} else if strings.Contains(typ, ".") {
+		g.WriteString(indentation, "$ref: '#/components/schemas/", typ, "'")
 	} else {
-		return fmt.Sprintf("type: %s", typ)
+		g.WriteString(indentation, "type: ", typ)
 	}
 }

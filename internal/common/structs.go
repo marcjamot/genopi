@@ -1,9 +1,5 @@
 package common
 
-import (
-	"net/http"
-)
-
 type Method struct {
 	Package  string
 	Name     string
@@ -26,6 +22,7 @@ type Field struct {
 type Api struct {
 	Status    Status
 	Endpoints []Endpoint
+	Structs   []Struct
 }
 
 type Status struct {
@@ -41,7 +38,7 @@ type Endpoint struct {
 	PathParams  map[string]Param
 	QueryParams map[string]Param
 	Headers     map[string]Param
-	Body        *Struct
+	Body        *string
 	Responses   []Response
 }
 
@@ -53,26 +50,5 @@ type Param struct {
 
 type Response struct {
 	Code int
-	Body string
-}
-
-type body struct {
-	Type user `json:"type"`
-	Desc []user
-}
-
-type user struct {
-	Type string `json:"type"`
-	Desc []string
-}
-
-// Get users
-// GET /v1/users/{id}
-// {id:uuid} User id
-// (name?:string) User name
-// [Access-Key?:string] Token access key
-// <common.body>
-// 200 OK
-// 400 If missing params
-func test(w http.ResponseWriter, r *http.Request) {
+	Type *string
 }

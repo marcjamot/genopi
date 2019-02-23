@@ -30,7 +30,7 @@ func main() {
 	log.Printf("- Path: %s", wd)
 
 	log.Print("[1/2] Parse API")
-	endpoints, err := parser.FromPath(wd)
+	endpoints, structs, err := parser.FromPath(wd)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,6 +39,7 @@ func main() {
 	if err := generator.OpenAPI3(common.Api{
 		Status:    status,
 		Endpoints: endpoints,
+		Structs:   structs,
 	}); err != nil {
 		log.Fatal(err)
 	}

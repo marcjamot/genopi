@@ -38,6 +38,9 @@ func tryParam(comment, left, right string) (key string, value common.Param, ok b
 
 	prefix := comment[1:i]
 	ps := strings.Split(prefix, ":")
+	if len(ps) != 2 {
+		return "", common.Param{}, false
+	}
 	ident := strings.TrimSpace(ps[0])
 	typ := strings.TrimSpace(ps[1])
 
@@ -55,26 +58,28 @@ func tryParam(comment, left, right string) (key string, value common.Param, ok b
 	}, true
 }
 
-func tryBody(comment string) (body string, ok bool) {
+func tryBody(comment string) (*string, bool) {
 	if strings.HasPrefix(comment, "<") && strings.HasSuffix(comment, ">") {
-		return strings.TrimSpace(comment[1 : len(comment)-1]), true
+		body := strings.TrimSpace(comment[1 : len(comment)-1])
+		return &body, true
 	}
-	return "", false
+	return nil, false
 }
 
-func tryResponse(comment string) (common.Response, bool) {
+func tryResponse(comment string) (int, *string, bool) {
 	if len(comment) < 3 {
-		return common.Response{}, false
+		return 0, nil, false
 	}
 
 	code, err := strconv.ParseInt(comment[0:3], 10, 32)
 	if err != nil {
-		return common.Response{}, false
+		return 0, nil, false
 	}
 
 	body := strings.TrimSpace(comment[3:])
-	return common.Response{
-		Code: int(code),
-		Body: body,
-	}, true
+	var b *string
+	if body != "" {
+		b = &body
+	}
+	return int(code), b, true
 }
