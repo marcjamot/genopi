@@ -108,3 +108,4 @@ Generating api documentation:
 - [x] Parse api from comments in source code
 - [x] Generate OpenAPI 3.0 documentation
 - [ ] Provide api tests using `golang.org/pkg/testing/quick`
+- [ ] Clean up code and make it extensible for additional generators and parsers
