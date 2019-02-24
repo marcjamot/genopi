@@ -37,6 +37,7 @@ type Status struct {
 	Title   string
 	Version string
 	URL     string
+	Output  string
 }
 
 type Endpoint struct {

@@ -3,13 +3,14 @@ package generator
 import (
 	"bytes"
 	"fmt"
-	"genopi/internal/common"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/plankt/genopi/internal/common"
 )
 
 type generator struct {
@@ -44,7 +45,7 @@ func OpenAPI3(api common.Api) error {
 	paths(api, g)
 	components(api, g)
 
-	return ioutil.WriteFile("api.yaml", []byte(g.String()), 0644)
+	return ioutil.WriteFile(api.Status.Output, []byte(g.String()), 0644)
 }
 
 func paths(api common.Api, g *generator) {

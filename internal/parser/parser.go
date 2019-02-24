@@ -3,13 +3,14 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"genopi/internal/common"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/plankt/genopi/internal/common"
 )
 
 func FromPath(dir string) ([]common.Endpoint, map[string]common.Struct, error) {

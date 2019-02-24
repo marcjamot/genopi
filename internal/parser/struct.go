@@ -2,10 +2,11 @@ package parser
 
 import (
 	"fmt"
-	"genopi/internal/common"
 	"go/ast"
 	"go/types"
 	"regexp"
+
+	"github.com/plankt/genopi/internal/common"
 )
 
 var (

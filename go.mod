@@ -1,3 +1,1 @@
-module genopi
-
-require github.com/kelseyhightower/envconfig v1.3.0
+module github.com/plankt/genopi

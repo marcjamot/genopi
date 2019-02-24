@@ -3,17 +3,13 @@ package main
 import (
 	"errors"
 	"flag"
-	"genopi/internal/common"
 	"log"
 	"os"
 
-	"genopi/internal/generator"
-	"genopi/internal/parser"
+	"github.com/plankt/genopi/internal/common"
+	"github.com/plankt/genopi/internal/generator"
+	"github.com/plankt/genopi/internal/parser"
 )
-
-type Config struct {
-	Path string
-}
 
 func main() {
 	log.Print("Genopi - Generate Open API 3")
@@ -49,10 +45,11 @@ func fromFlags() (common.Status, error) {
 	title := flag.String("t", "", "api title")
 	version := flag.String("v", "", "api version")
 	url := flag.String("u", "", "api url")
+	output := flag.String("o", "api.yaml", "output file")
 
 	flag.Parse()
 
-	if *title == "" || *version == "" || *url == "" {
+	if *title == "" || *version == "" || *url == "" || *output == "" {
 		flag.PrintDefaults()
 		return common.Status{}, errors.New("missing required flags")
 	}
@@ -60,5 +57,6 @@ func fromFlags() (common.Status, error) {
 		Title:   *title,
 		Version: *version,
 		URL:     *url,
+		Output:  *output,
 	}, nil
 }

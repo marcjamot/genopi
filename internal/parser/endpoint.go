@@ -1,10 +1,11 @@
 package parser
 
 import (
-	"genopi/internal/common"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/plankt/genopi/internal/common"
 )
 
 func tryMethod(comment string) (method, path string, ok bool) {

@@ -1,8 +1,9 @@
 package parser
 
 import (
-	"genopi/internal/common"
 	"go/ast"
+
+	"github.com/plankt/genopi/internal/common"
 )
 
 func readMethod(f *ast.File, x1 *ast.FuncDecl) (common.Method, bool) {
