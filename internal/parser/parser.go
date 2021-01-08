@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/plankt/genopi/internal/common"
+	"github.com/marcjamot/genopi/internal/common"
 )
 
 func FromPath(dir string) ([]common.Endpoint, map[string]common.Struct, error) {

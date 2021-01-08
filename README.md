@@ -99,7 +99,7 @@ Flags:
 
 Generating api documentation:
 
-1. `go get github.com/plankt/genopi/cmd/genopi`
+1. `go get github.com/marcjamot/genopi/cmd/genopi`
 2. `cd $GOPATH/src/your/project`
 3. `genopi -t "Api title" -u "https://api.url" -v "1.0" -o "docs/api.yaml"`
 

@@ -6,9 +6,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/plankt/genopi/internal/common"
-	"github.com/plankt/genopi/internal/generator"
-	"github.com/plankt/genopi/internal/parser"
+	"github.com/marcjamot/genopi/internal/common"
+	"github.com/marcjamot/genopi/internal/generator"
+	"github.com/marcjamot/genopi/internal/parser"
 )
 
 func main() {

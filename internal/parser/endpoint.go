@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/plankt/genopi/internal/common"
+	"github.com/marcjamot/genopi/internal/common"
 )
 
 func tryMethod(comment string) (method, path string, ok bool) {

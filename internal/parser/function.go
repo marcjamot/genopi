@@ -3,7 +3,7 @@ package parser
 import (
 	"go/ast"
 
-	"github.com/plankt/genopi/internal/common"
+	"github.com/marcjamot/genopi/internal/common"
 )
 
 func readMethod(f *ast.File, x1 *ast.FuncDecl) (common.Method, bool) {

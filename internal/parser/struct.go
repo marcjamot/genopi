@@ -6,7 +6,7 @@ import (
 	"go/types"
 	"regexp"
 
-	"github.com/plankt/genopi/internal/common"
+	"github.com/marcjamot/genopi/internal/common"
 )
 
 var (

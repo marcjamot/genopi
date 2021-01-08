@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/plankt/genopi/internal/common"
+	"github.com/marcjamot/genopi/internal/common"
 )
 
 type generator struct {
